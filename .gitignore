@@ -1,0 +1,46 @@
+# ==== Datos (NO subir datasets grandes al repo) ====
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+*.csv
+*.parquet
+!data/**/sample_*.csv
+
+# ==== Python ====
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.Python
+build/
+dist/
+
+# ==== Entornos virtuales ====
+.env
+.venv
+venv/
+env/
+ENV/
+
+# ==== Jupyter ====
+.ipynb_checkpoints/
+
+# ==== MLflow ====
+mlruns/
+mlartifacts/
+
+# ==== Docker ====
+*.log
+
+# ==== Sistema operativo / editores ====
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ==== Modelos entrenados grandes (se registran en MLflow, no en git) ====
+*.pkl
+*.joblib
+*.h5
+models/*.bin
