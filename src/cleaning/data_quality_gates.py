@@ -674,17 +674,48 @@ def check_numeric_ranges(df):
 
 # Función para ejecutar todas las reglas definidas para obtener un diagnóstico completo
 
-# Se comprueban todas las reglas juntas
-# Existen 3 resultados: FAIL, WARNING y PASS
+def build_gate_report(results):
+    """
+    Reúne los resultados individuales y calcula el estado general.
+    """
+
+    # Extraer los estados individuales
+    statuses = [result["status"] for result in results]
+
+    # Calcular el estado general
+    if "FAIL" in statuses:
+        overall_status = "FAIL"
+
+    elif "WARNING" in statuses:
+        overall_status = "WARNING"
+
+    else:
+        overall_status = "PASS"
+
+    # Contar la cantidad de resultados de cada tipo
+    summary = {
+        "PASS": statuses.count("PASS"),
+        "WARNING": statuses.count("WARNING"),
+        "FAIL": statuses.count("FAIL"),
+    }
+
+    return {
+        "overall_status": overall_status,
+        "summary": summary,
+        "results": results,
+    }
+
+
 def run_reference_gates(df):
     """
-    Justificación de la función
+    Ejecuta todos los Data Quality Gates del dataset crudo.
 
-    Esta función ejecuta todas las reglas al mismo tiempo para mantener la validación organizada 
-    y estructurada.
+    Esta función ejecuta todas las reglas de entrada antes de la limpieza.
+    Los problemas conocidos pueden producir WARNING y permitir que el
+    pipeline continúe hacia clean.py.
     """
 
-    # Ejecutar todas las reglas y guardar sus resultados
+    # Ejecutar las reglas correspondientes al dataset raw
     results = [
         check_schema(df),
         check_row_count(df),
@@ -696,31 +727,53 @@ def run_reference_gates(df):
         check_numeric_ranges(df),
     ]
 
-    # Extraer los estados individuales para calcular el resultado general
-    statuses = [result["status"] for result in results]
+    return build_gate_report(results)
 
-    # FAIL tiene la mayor prioridad
-    if "FAIL" in statuses:
-        overall_status = "FAIL"
 
-    # WARNING se utiliza únicamente cuando no existe ningún FAIL
-    elif "WARNING" in statuses:
-        overall_status = "WARNING"
+def run_clean_gates(df):
+    """
+    Ejecuta los Data Quality Gates después de aplicar la limpieza.
 
-    # Si no existen fallos ni advertencias, todos los gates pasaron
-    else:
-        overall_status = "PASS"
+    Los WARNING relacionados con esquema, faltantes, duplicados y etiquetas
+    de income se convierten en FAIL, porque clean.py debía corregirlos.
+    """
 
-    # Contar cuántos gates terminaron en cada estado
-    summary = {
-        "PASS": statuses.count("PASS"),
-        "WARNING": statuses.count("WARNING"),
-        "FAIL": statuses.count("FAIL"),
+    # La cantidad oficial de filas no se revisa después de eliminar duplicados
+    results = [
+        check_schema(df),
+        check_target_completeness(df),
+        check_predictor_missing_values(df),
+        check_duplicates(df),
+        check_target_values(df),
+        check_data_types(df),
+        check_numeric_ranges(df),
+    ]
+
+    # Gates que deben producir PASS después de la limpieza
+    strict_clean_gates = {
+        "schema",
+        "predictor_missing_values",
+        "duplicates",
+        "target_values",
     }
 
-    # Devolver el resultado general y el detalle de cada validación
-    return {
-        "overall_status": overall_status,
-        "summary": summary,
-        "results": results,
-    }
+    clean_results = []
+
+    for result in results:
+        # Crear una copia para no modificar el resultado original
+        clean_result = result.copy()
+
+        # Una advertencia en estos gates indica que la limpieza no terminó bien
+        if (
+            clean_result["gate"] in strict_clean_gates
+            and clean_result["status"] == "WARNING"
+        ):
+            clean_result["status"] = "FAIL"
+            clean_result["message"] = (
+                "La validación posterior a la limpieza falló. "
+                + clean_result["message"]
+            )
+
+        clean_results.append(clean_result)
+
+    return build_gate_report(clean_results)
