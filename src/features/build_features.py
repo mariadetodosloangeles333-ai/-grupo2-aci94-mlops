@@ -25,6 +25,8 @@ entrenamiento. Nunca debe hacerse fit_transform() sobre test.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 
@@ -639,7 +641,14 @@ def obtener_nombres_features(
 
 if __name__ == "__main__":
 
-    RUTA_DATASET = "data/raw/adult.csv"
+    PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+    RUTA_DATASET = (
+        PROJECT_ROOT
+        / "data"
+        / "processed"
+        / "adult_clean.csv"
+    )
 
     print("=" * 70)
     print("ACI94 - Smoke Test de Feature Engineering")
