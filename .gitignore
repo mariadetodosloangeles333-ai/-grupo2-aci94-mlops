@@ -29,6 +29,7 @@ ENV/
 # ==== MLflow ====
 mlruns/
 mlartifacts/
+mlflow.db*
 
 # ==== Docker ====
 *.log
