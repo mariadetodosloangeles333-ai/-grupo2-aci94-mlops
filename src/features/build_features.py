@@ -44,7 +44,17 @@ from sklearn.impute import SimpleImputer
 # VERSIÓN DEL CONJUNTO DE FEATURES
 # =============================================================================
 
+# Versión baseline que utiliza todas las variables aprobadas
 FEATURE_SET_VERSION = "v1_baseline"
+
+# Versión alternativa que excluye variables sensibles de la predicción (sex, race y native country)
+FEATURE_SET_WITHOUT_SENSITIVE_VERSION = "v2_without_sensitive"
+
+# Versiones de Feature Engineering admitidas por el pipeline
+SUPPORTED_FEATURE_SET_VERSIONS = (
+    FEATURE_SET_VERSION,
+    FEATURE_SET_WITHOUT_SENSITIVE_VERSION,
+)
 
 
 # =============================================================================
@@ -123,6 +133,13 @@ CATEGORICAL_FEATURES = [
     "native-country",
 ]
 
+# Variables disponibles para auditoría y evaluación de posibles sesgos
+SENSITIVE_FEATURES = [
+    "race",
+    "sex",
+    "native-country",
+]
+
 
 # =============================================================================
 # PAÍSES FRECUENTES
@@ -162,7 +179,7 @@ FREQUENT_COUNTRIES = [
 #
 # fnlwgt:
 #     Representa un peso estadístico asociado al muestreo censal y no una
-#     característica individual directa. Se excluye del modelo baseline
+#     característica individual directa. Se excluye del modelo
 #     para mantener el conjunto de variables centrado en características
 #     individuales interpretables.
 # =============================================================================
@@ -184,12 +201,44 @@ REQUIRED_FEATURES = (
 )
 
 
+def obtener_configuracion_features(
+    feature_set_version: str,
+) -> tuple[list[str], list[str]]:
+    """
+    Obtiene las variables categóricas y obligatorias de cada feature set.
+    """
+    if feature_set_version not in SUPPORTED_FEATURE_SET_VERSIONS:
+        raise ValueError(
+            "Versión de features no soportada: "
+            f"'{feature_set_version}'. Versiones permitidas: "
+            f"{SUPPORTED_FEATURE_SET_VERSIONS}"
+        )
+
+    if feature_set_version == FEATURE_SET_VERSION:
+        categorical_features = CATEGORICAL_FEATURES.copy()
+
+    else:
+        categorical_features = [
+            feature
+            for feature in CATEGORICAL_FEATURES
+            if feature not in SENSITIVE_FEATURES
+        ]
+
+    required_features = (
+        NUMERIC_FEATURES
+        + SKEWED_NUMERIC_FEATURES
+        + categorical_features
+    )
+
+    return categorical_features, required_features
+
 # =============================================================================
 # VALIDACIÓN DE COLUMNAS
 # =============================================================================
 
 def validar_columnas_entrada(
     df: pd.DataFrame,
+    required_features: list[str] | None = None,
 ) -> None:
     """
     Verifica que el dataframe contenga todas las variables requeridas
@@ -199,6 +248,9 @@ def validar_columnas_entrada(
     ----------
     df : pd.DataFrame
         Dataframe de entrada.
+
+    required_features : list[str] | None
+        Variables que la versión del feature set necesita como entrada.
 
     Raises
     ------
@@ -214,9 +266,13 @@ def validar_columnas_entrada(
             "La entrada debe ser un pandas DataFrame."
         )
 
+    # Utilizar las variables del baseline cuando no se indique otra versión
+    if required_features is None:
+        required_features = REQUIRED_FEATURES
+
     columnas_faltantes = [
         columna
-        for columna in REQUIRED_FEATURES
+        for columna in required_features
         if columna not in df.columns
     ]
 
@@ -233,6 +289,7 @@ def validar_columnas_entrada(
 
 def limpiar_strings_categoricos(
     df: pd.DataFrame,
+    categorical_features: list[str] | None = None,
 ) -> pd.DataFrame:
     """
     Limpia las variables categóricas.
@@ -247,6 +304,9 @@ def limpiar_strings_categoricos(
     df : pd.DataFrame
         Dataframe original.
 
+    categorical_features : list[str] | None
+        Variables categóricas que deben limpiarse.
+
     Returns
     -------
     pd.DataFrame
@@ -255,7 +315,11 @@ def limpiar_strings_categoricos(
 
     df = df.copy()
 
-    for columna in CATEGORICAL_FEATURES:
+    # Utilizar las categóricas del baseline si no se indica otra versión
+    if categorical_features is None:
+        categorical_features = CATEGORICAL_FEATURES
+
+    for columna in categorical_features:
 
         if columna not in df.columns:
             continue
@@ -405,7 +469,7 @@ def eliminar_variables_excluidas(
     df: pd.DataFrame,
 ) -> pd.DataFrame:
     """
-    Elimina las variables que fueron excluidas del modelo baseline.
+    Elimina las variables que fueron excluidas de los feature sets.
 
     Parámetros
     ----------
@@ -432,11 +496,12 @@ def eliminar_variables_excluidas(
 
 
 # =============================================================================
-# PREPARACIÓN DEL DATAFRAME RAW
+# PREPARACIÓN DEL DATAFRAME
 # =============================================================================
 
-def preparar_dataframe_raw(
+def preparar_dataframe(
     df: pd.DataFrame,
+    feature_set_version: str = FEATURE_SET_VERSION,
 ) -> pd.DataFrame:
     """
     Ejecuta las transformaciones determinísticas de Feature Engineering.
@@ -454,7 +519,10 @@ def preparar_dataframe_raw(
     Parámetros
     ----------
     df : pd.DataFrame
-        Dataframe raw.
+        Dataframe.
+
+    feature_set_version : str
+        Versión de Feature Engineering que debe aplicarse.
 
     Returns
     -------
@@ -462,11 +530,24 @@ def preparar_dataframe_raw(
         Dataframe preparado.
     """
 
-    validar_columnas_entrada(df)
+    categorical_features, required_features = (
+        obtener_configuracion_features(
+            feature_set_version
+        )
+    )
 
-    df = limpiar_strings_categoricos(df)
+    validar_columnas_entrada(
+        df,
+        required_features=required_features,
+    )
 
-    df = agrupar_paises_poco_frecuentes(df)
+    df = limpiar_strings_categoricos(
+        df,
+        categorical_features=categorical_features,
+    )
+
+    if "native-country" in categorical_features:
+        df = agrupar_paises_poco_frecuentes(df)
 
     df = transformar_variables_sesgadas(df)
 
@@ -479,7 +560,9 @@ def preparar_dataframe_raw(
 # CONSTRUCCIÓN DEL PIPELINE COMPLETO
 # =============================================================================
 
-def construir_pipeline_features() -> Pipeline:
+def construir_pipeline_features(
+    feature_set_version: str = FEATURE_SET_VERSION,
+) -> Pipeline:
     """
     Construye el pipeline completo y reutilizable de Feature Engineering.
 
@@ -509,6 +592,12 @@ def construir_pipeline_features() -> Pipeline:
     sklearn.pipeline.Pipeline
         Pipeline completo de Feature Engineering.
     """
+
+    categorical_features, _ = (
+        obtener_configuracion_features(
+            feature_set_version
+        )
+    )
 
     # -------------------------------------------------------------------------
     # TRANSFORMACIÓN DE VARIABLES NUMÉRICAS
@@ -567,7 +656,7 @@ def construir_pipeline_features() -> Pipeline:
             (
                 "categorico",
                 transformador_categorico,
-                CATEGORICAL_FEATURES,
+                categorical_features,
             ),
         ],
         remainder="drop",
@@ -588,10 +677,13 @@ def construir_pipeline_features() -> Pipeline:
     pipeline_features = Pipeline(
         steps=[
             (
-                "preparar_raw",
+                "preparar_dataframe",
                 FunctionTransformer(
-                    preparar_dataframe_raw,
+                    preparar_dataframe,
                     validate=False,
+                    kw_args={
+                        "feature_set_version": feature_set_version,
+                    },
                 ),
             ),
             (
@@ -658,16 +750,14 @@ if __name__ == "__main__":
     # Cargar dataset
     # -------------------------------------------------------------------------
 
+    if not RUTA_DATASET.exists():
+        raise FileNotFoundError(
+            f"No se encontró el dataset procesado en: "
+            f"{RUTA_DATASET}. Ejecute primero el pipeline de limpieza."
+        )
+
     df = pd.read_csv(
         RUTA_DATASET
-    )
-
-    print(
-        f"Versión del Feature Set: {FEATURE_SET_VERSION}"
-    )
-
-    print(
-        f"Dimensiones originales: {df.shape}"
     )
 
     # -------------------------------------------------------------------------
@@ -693,38 +783,92 @@ if __name__ == "__main__":
     # Construir pipeline
     # -------------------------------------------------------------------------
 
-    pipeline_features = construir_pipeline_features()
-
     # -------------------------------------------------------------------------
     # Smoke test
     #
     # IMPORTANTE:
-    # Esto es solamente una prueba del pipeline.
+    # Esto es solamente una prueba técnica del pipeline.
     #
-    # En el entrenamiento real, fit_transform() debe ejecutarse ÚNICAMENTE
-    # sobre X_train después de separar train/test.
+    # En el entrenamiento real, fit_transform() debe ejecutarse únicamente
+    # sobre X_train después de separar entrenamiento y prueba.
     # -------------------------------------------------------------------------
 
-    X_transformado = pipeline_features.fit_transform(
-        X
-    )
+    # Probar todas las versiones admitidas del Feature Engineering
+    for feature_set_version in SUPPORTED_FEATURE_SET_VERSIONS:
 
-    # -------------------------------------------------------------------------
-    # Mostrar resultados
-    # -------------------------------------------------------------------------
+        print("-" * 70)
+        print(
+            f"Versión del Feature Set: "
+            f"{feature_set_version}"
+        )
 
-    print(
-        f"Dimensiones del target: {y.shape}"
-    )
+        pipeline_features = construir_pipeline_features(
+            feature_set_version=feature_set_version,
+        )
 
-    print(
-        f"Dimensiones transformadas: {X_transformado.shape}"
-    )
+        if (
+            feature_set_version
+            == FEATURE_SET_WITHOUT_SENSITIVE_VERSION
+        ):
+            X_version = X.drop(
+                columns=SENSITIVE_FEATURES
+            )
 
-    print(
-        f"Número de features generadas: "
-        f"{X_transformado.shape[1]}"
-    )
+        else:
+            X_version = X
+
+        # Ajustar únicamente como prueba técnica del pipeline
+        X_transformado = pipeline_features.fit_transform(
+            X_version
+        )
+
+        feature_names = obtener_nombres_features(
+            pipeline_features
+        )
+
+        sensitive_feature_names = [
+            feature_name
+            for feature_name in feature_names
+            if any(
+                f"__{sensitive_feature}_"
+                in feature_name
+                for sensitive_feature in SENSITIVE_FEATURES
+            )
+        ]
+
+        print(
+            f"Dimensiones originales: {X_version.shape}"
+        )
+
+        print(
+            f"Dimensiones del target: {y.shape}"
+        )
+
+        print(
+            f"Dimensiones transformadas: "
+            f"{X_transformado.shape}"
+        )
+
+        print(
+            f"Número de features generadas: "
+            f"{X_transformado.shape[1]}"
+        )
+
+        print(
+            f"Features sensibles generadas: "
+            f"{len(sensitive_feature_names)}"
+        )
+
+        if (
+            feature_set_version
+            == FEATURE_SET_WITHOUT_SENSITIVE_VERSION
+            and sensitive_feature_names
+        ):
+            raise ValueError(
+                "La versión sin variables sensibles generó "
+                f"features no permitidas: "
+                f"{sensitive_feature_names}"
+            )
 
     print("=" * 70)
     print("Smoke test completado correctamente.")

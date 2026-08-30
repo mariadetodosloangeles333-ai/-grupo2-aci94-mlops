@@ -9,7 +9,7 @@ Cada regla produce uno de estos estados:
 """
 
 # Importar librerias
-from pandas.api.types import is_numeric_dtype, is_string_dtype
+from pandas.api.types import is_numeric_dtype
 
 # Reglas automáticas implementadas
 
@@ -482,12 +482,29 @@ def check_data_types(df):
                 "expected": "numeric",
             }
 
-    # Verificar las variables que deben contener texto
+    # Verificar que los valores no faltantes de las variables categóricas sean texto
+    # Pandas puede representar estas columnas como string u object según su versión
     for column in CATEGORICAL_COLUMNS:
-        if not is_string_dtype(df[column]):
+
+        # Excluir temporalmente los faltantes, ya que se validan en otro gate
+        non_missing_values = df[column].dropna()
+
+        # Detectar valores que no sean realmente cadenas de texto
+        invalid_values = non_missing_values[
+            ~non_missing_values.map(
+                lambda value: isinstance(value, str)
+            )
+        ]
+
+        if not invalid_values.empty:
             invalid_types[column] = {
-                "detected": str(df[column].dtype),
-                "expected": "string",
+                "detected": sorted(
+                    {
+                        type(value).__name__
+                        for value in invalid_values
+                    }
+                ),
+                "expected": "string values",
             }
 
     # Cualquier tipo incorrecto bloquea el pipeline - Se produce FAIL
