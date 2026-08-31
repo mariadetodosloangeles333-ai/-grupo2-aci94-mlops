@@ -40,8 +40,12 @@ Thumbs.db
 .vscode/
 .idea/
 
-# ==== Modelos entrenados grandes (se registran en MLflow, no en git) ====
+# ==== Modelos entrenados grandes ====
+# Por defecto no se versionan modelos experimentales
 *.pkl
 *.joblib
 *.h5
 models/*.bin
+
+# Excepción: artifact Production aprobado para serving/Docker
+!models/production/model.pkl
