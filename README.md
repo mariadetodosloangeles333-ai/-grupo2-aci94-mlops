@@ -82,9 +82,66 @@ _(Pendiente)_ Endpoint(s) disponibles, ejemplo de request/response de
 `POST /predict`.
 
 ## 11. Monitoring
-_(Pendiente)_ Qué se monitorea (data drift, performance del modelo, métricas
-operativas) y cómo se simula/detecta drift.
+## 11. Monitoring
 
+El sistema de monitoreo cubre tres frentes: **detección de drift**, **calidad de datos en producción**, y **decisión de reentrenamiento**. El código vive en `src/monitoring/`.
+
+### 11.1 Drift Detection (`src/monitoring/drift_detection.py`)
+
+Se construyó un **reference/baseline** (40% del dataset histórico) y 3 lotes de "producción" simulados a partir del mismo dataset, cada uno con una magnitud de cambio distinta:
+
+| Lote | Descripción | PSI máximo | Estado |
+|---|---|---|---|
+| Lote 1 (normal) | Sin alterar | 0.0031 | 🟢 OK |
+| Lote 2 (moderado) | Cambio leve en edad, horas y educación | 0.1529 | 🟡 WARNING |
+| Lote 3 (fuerte) | Cambio grande en la población de entrada | 3.6700 | 🔴 ALERT |
+
+**Métrica usada:** PSI (Population Stability Index), calculado tanto para variables numéricas (age, hours-per-week) como categóricas (education).
+
+**Umbrales (estándar de la industria, documentados en el código, no tratados como ley universal):**
+- `PSI < 0.10` → sin cambio significativo → **OK**
+- `0.10 ≤ PSI < 0.25` → cambio moderado, vigilar de cerca → **WARNING**
+- `PSI ≥ 0.25` → cambio fuerte, la distribución cambió → **ALERT**
+
+Correr:
+```bash
+python src/monitoring/drift_detection.py
+```
+
+### 11.2 Data Quality Gates (`src/monitoring/data_quality_gates.py`)
+
+Se simula contaminación **sobre una copia** de un batch (nunca se modifica `data/raw/` ni `data/processed/`), introduciendo 6 problemas típicos de producción:
+
+1. Missing values
+2. Filas duplicadas
+3. Outlier extremo (edad = 999)
+4. Tipo de dato incorrecto (edad = "treinta")
+5. Categoría desconocida (`native-country = "UNKNOWN_NEW_COUNTRY"`)
+6. Cambio de esquema (columna nueva no esperada)
+
+El pipeline sigue el flujo: **Detecta → Bloquea/Advierte → Registra**. Los problemas críticos (esquema, tipo de dato, rango) bloquean el batch; los demás generan advertencia. Todo queda registrado en `logs/data_quality_incidents.log`.
+
+Correr:
+```bash
+python src/monitoring/data_quality_gates.py
+```
+
+### 11.3 Decisión de reentrenamiento (`src/monitoring/retraining_decision.py`)
+
+Combina la señal de drift (PSI) con el desempeño del modelo para decidir entre **MANTENER**, **REVISAR** o **CONSIDERAR REENTRENAMIENTO**, partiendo de la premisa de que **Drift ≠ Model Degradation**: un cambio en la distribución de los datos no implica automáticamente que el modelo esté fallando.
+
+| Escenario | Drift | Desempeño | Decisión |
+|---|---|---|---|
+| Lote 1 | Sin drift | Estable | MANTENER |
+| Lote 2 | Drift moderado | Estable | REVISAR |
+| Lote 3 | Drift fuerte | Se deterioró | CONSIDERAR REENTRENAMIENTO |
+
+Solo se recomienda reentrenar cuando **ambas** señales (drift relevante + caída de desempeño) aparecen juntas.
+
+Correr:
+```bash
+python src/monitoring/retraining_decision.py
+```
 ## 12. Results
 _(Pendiente)_ Métricas finales del mejor modelo y comparación entre los
 modelos evaluados.
