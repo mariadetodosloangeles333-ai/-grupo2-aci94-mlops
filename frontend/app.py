@@ -717,9 +717,14 @@ elif st.session_state.screen == "result":
             st.rerun()
 
     with col_more:
-        st.button(
+        if st.button(
             "CONOCER ACI94  →",
             use_container_width=True,
             type="primary",
-            disabled=True
-        )
+        ):
+            st.session_state.screen = "demo_01"
+            st.rerun()
+
+elif st.session_state.screen == "demo_01":
+    st.title("¿Cómo llegamos hasta esta predicción?")
+    
