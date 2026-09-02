@@ -1029,4 +1029,312 @@ elif st.session_state.screen == "demo_01":
             st.rerun()
 
 elif st.session_state.screen == "demo_02":
-    st.title("¿Cómo funciona la predicción?")
+
+    st.html(
+        """
+        <style>
+        .serving-page {
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 0.5rem 1rem 1rem 1rem;
+        }
+
+        .serving-title {
+            text-align: center;
+            color: #102F46;
+            font-size: clamp(2rem, 4vw, 3.6rem);
+            font-weight: 800;
+            line-height: 1.05;
+            margin-bottom: 0.4rem;
+        }
+
+        .serving-subtitle {
+            text-align: center;
+            color: #40515B;
+            font-size: 1.05rem;
+            margin-bottom: 2rem;
+        }
+
+        .serving-flow {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr;
+            gap: 0.55rem;
+            align-items: center;
+        }
+
+        .serving-card {
+            background: rgba(250, 244, 226, 0.80);
+            border: 1px solid rgba(16, 47, 70, 0.22);
+            border-radius: 10px;
+            padding: 1.2rem 0.8rem;
+            text-align: center;
+            min-height: 175px;
+        }
+
+        .serving-step {
+            color: #A84F2D;
+            font-size: 0.78rem;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            margin-bottom: 0.55rem;
+        }
+
+        .serving-name {
+            color: #102F46;
+            font-size: 1.15rem;
+            font-weight: 800;
+            margin-bottom: 0.6rem;
+        }
+
+        .serving-main {
+            color: #647343;
+            font-size: 1.15rem;
+            font-weight: 800;
+            margin-bottom: 0.35rem;
+        }
+
+        .serving-detail {
+            color: #4E5C56;
+            font-size: 0.82rem;
+            line-height: 1.3;
+        }
+
+        .serving-arrow {
+            color: #A84F2D;
+            font-size: 1.8rem;
+            font-weight: 800;
+            text-align: center;
+        }
+
+        .docker-box {
+            max-width: 720px;
+            margin: 1.5rem auto 0 auto;
+            padding: 0.9rem 1rem;
+            border: 1px dashed rgba(100, 115, 67, 0.75);
+            border-radius: 10px;
+            text-align: center;
+            background: rgba(100, 115, 67, 0.07);
+        }
+
+        .docker-title {
+            color: #102F46;
+            font-weight: 800;
+            font-size: 0.95rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .docker-content {
+            color: #647343;
+            font-weight: 800;
+            font-size: 1.05rem;
+        }
+
+        .docker-detail {
+            color: #4E5C56;
+            font-size: 0.8rem;
+            margin-top: 0.25rem;
+        }
+
+        .serving-evidence-title {
+            margin-top: 1.5rem;
+            margin-bottom: 0.8rem;
+            text-align: center;
+            color: #102F46;
+            font-size: 1.2rem;
+            font-weight: 800;
+            letter-spacing: 0.05em;
+        }
+
+        .serving-evidence {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.8rem;
+        }
+
+        .serving-evidence-card {
+            background: rgba(250, 244, 226, 0.82);
+            border: 1px solid rgba(16, 47, 70, 0.22);
+            border-radius: 10px;
+            padding: 0.9rem;
+            text-align: center;
+        }
+
+        .serving-evidence-label {
+            color: #102F46;
+            font-size: 0.82rem;
+            font-weight: 800;
+        }
+
+        .serving-evidence-value {
+            color: #647343;
+            font-size: 1.1rem;
+            font-weight: 800;
+            margin-top: 0.3rem;
+        }
+
+        .serving-closing {
+            margin: 1rem auto 0 auto;
+            max-width: 850px;
+            text-align: center;
+            color: #102F46;
+            font-weight: 600;
+            font-size: 0.95rem;
+            padding: 0.7rem 1rem;
+            border-top: 1px solid rgba(16, 47, 70, 0.22);
+        }
+
+        @media (max-width: 900px) {
+            .serving-flow {
+                grid-template-columns: 1fr;
+            }
+
+            .serving-arrow {
+                transform: rotate(90deg);
+                font-size: 1.4rem;
+            }
+
+            .serving-card {
+                min-height: auto;
+            }
+
+            .serving-evidence {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 520px) {
+            .serving-evidence {
+                grid-template-columns: 1fr;
+            }
+
+            .serving-page {
+                padding-left: 0.2rem;
+                padding-right: 0.2rem;
+            }
+        }
+        </style>
+
+        <div class="serving-page">
+
+            <div class="serving-title">
+                ¿Cómo funciona la predicción?
+            </div>
+
+            <div class="serving-subtitle">
+                De los datos ingresados por el usuario a una respuesta del modelo en producción.
+            </div>
+
+            <div class="serving-flow">
+
+                <div class="serving-card">
+                    <div class="serving-step">01 · ENTRADA</div>
+                    <div class="serving-name">INTERFAZ</div>
+                    <div class="serving-main">Streamlit</div>
+                    <div class="serving-detail">
+                        El usuario ingresa las variables requeridas para generar la predicción.
+                    </div>
+                </div>
+
+                <div class="serving-arrow">→</div>
+
+                <div class="serving-card">
+                    <div class="serving-step">02 · SOLICITUD</div>
+                    <div class="serving-name">FASTAPI</div>
+                    <div class="serving-main">POST /predict</div>
+                    <div class="serving-detail">
+                        Valida el esquema de entrada y envía los datos al servicio del modelo.
+                    </div>
+                </div>
+
+                <div class="serving-arrow">→</div>
+
+                <div class="serving-card">
+                    <div class="serving-step">03 · INFERENCIA</div>
+                    <div class="serving-name">PRODUCTION v1</div>
+                    <div class="serving-main">Random Forest</div>
+                    <div class="serving-detail">
+                        El pipeline transforma los datos y el modelo genera la predicción.
+                    </div>
+                </div>
+
+                <div class="serving-arrow">→</div>
+
+                <div class="serving-card">
+                    <div class="serving-step">04 · RESPUESTA</div>
+                    <div class="serving-name">RESULTADO</div>
+                    <div class="serving-main">Predicción + probabilidad</div>
+                    <div class="serving-detail">
+                        FastAPI devuelve la respuesta y Streamlit la presenta al usuario.
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="docker-box">
+                <div class="docker-title">ENTORNO REPRODUCIBLE</div>
+                <div class="docker-content">Docker · FastAPI + Production v1</div>
+                <div class="docker-detail">
+                    El contenedor encapsula el servicio de inferencia y sus dependencias.
+                </div>
+            </div>
+
+            <div class="serving-evidence-title">
+                EVIDENCIA PRINCIPAL
+            </div>
+
+            <div class="serving-evidence">
+
+                <div class="serving-evidence-card">
+                    <div class="serving-evidence-label">MODELO VERSIONADO</div>
+                    <div class="serving-evidence-value">Production v1 ✓</div>
+                </div>
+
+                <div class="serving-evidence-card">
+                    <div class="serving-evidence-label">CONTENEDOR</div>
+                    <div class="serving-evidence-value">Docker ✓</div>
+                </div>
+
+                <div class="serving-evidence-card">
+                    <div class="serving-evidence-label">API FUNCIONAL</div>
+                    <div class="serving-evidence-value">FastAPI ✓</div>
+                </div>
+
+                <div class="serving-evidence-card">
+                    <div class="serving-evidence-label">ENTRADA VALIDADA</div>
+                    <div class="serving-evidence-value">Schema API ✓</div>
+                </div>
+
+            </div>
+
+            <div class="serving-closing">
+                Una misma versión del modelo, servida mediante API y ejecutada
+                en un entorno reproducible.
+            </div>
+
+        </div>
+        """
+    )
+
+    col_new, col_next = st.columns([1, 1])
+
+    with col_new:
+        if st.button(
+            "← NUEVA PREDICCIÓN",
+            use_container_width=True,
+            key="demo02_new"
+        ):
+            st.session_state.screen = "profile"
+            st.rerun()
+
+    with col_next:
+        if st.button(
+            "¿QUÉ PASA DESPUÉS DE LA PREDICCIÓN? →",
+            use_container_width=True,
+            type="primary",
+            key="demo02_next"
+        ):
+            st.session_state.screen = "demo_03"
+            st.rerun()
+
+elif st.session_state.screen == "demo_03":
+    st.title("¿Qué pasa después de la predicción?")
