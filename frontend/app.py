@@ -1338,3 +1338,312 @@ elif st.session_state.screen == "demo_02":
 
 elif st.session_state.screen == "demo_03":
     st.title("¿Qué pasa después de la predicción?")
+
+    col_new, col_team = st.columns([1, 1])
+
+    with col_new:
+        if st.button(
+            "← NUEVA PREDICCIÓN",
+             use_container_width=True,
+             key="demo03_new"
+        ):
+             st.session_state.screen = "profile"
+             st.rerun()
+
+    with col_team:
+        if st.button(
+             "CONOZCA AL EQUIPO →",
+             use_container_width=True,
+             type="primary",
+             key="demo03_team"
+        ):
+             st.session_state.screen = "demo_04"
+             st.rerun()
+
+elif st.session_state.screen == "demo_04":
+
+    st.html(
+        """
+        <style>
+        .team-page {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0.4rem 1rem 1rem 1rem;
+        }
+
+        .team-title {
+            text-align: center;
+            color: #102F46;
+            font-size: clamp(2rem, 4vw, 3.5rem);
+            font-weight: 800;
+            line-height: 1.05;
+            margin-bottom: 0.4rem;
+        }
+
+        .team-subtitle {
+            text-align: center;
+            color: #40515B;
+            font-size: 1rem;
+            margin-bottom: 1.6rem;
+        }
+
+        .team-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.2rem;
+            max-width: 850px;
+            margin: 0 auto;
+        }
+
+        .team-card {
+            text-align: center;
+        }
+
+        .photo-placeholder {
+            width: 145px;
+            height: 145px;
+            margin: 0 auto 0.8rem auto;
+            border-radius: 50%;
+            border: 2px solid #A84F2D;
+            background: rgba(250, 244, 226, 0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #647343;
+            font-size: 2rem;
+            font-weight: 800;
+        }
+
+        .team-name {
+            color: #102F46;
+            font-size: 1.05rem;
+            font-weight: 800;
+            line-height: 1.2;
+        }
+
+        .team-project {
+            color: #647343;
+            font-size: 0.78rem;
+            font-weight: 700;
+            margin-top: 0.25rem;
+        }
+
+        .work-title {
+            text-align: center;
+            color: #102F46;
+            font-size: 1.1rem;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            margin-top: 1.6rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .work-cycle {
+            width: 245px;
+            height: 245px;
+            margin: 0 auto;
+            position: relative;
+            border: 2px dashed rgba(100, 115, 67, 0.65);
+            border-radius: 50%;
+            background: rgba(100, 115, 67, 0.04);
+        }
+
+        .cycle-center {
+            position: absolute;
+            width: 105px;
+            height: 105px;
+            top: 68px;
+            left: 68px;
+            border-radius: 50%;
+            background: #102F46;
+            color: #F7EED6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 0.78rem;
+            font-weight: 800;
+            line-height: 1.15;
+        }
+
+        .cycle-item {
+            position: absolute;
+            color: #102F46;
+            background: #F7EED6;
+            border: 1px solid rgba(16, 47, 70, 0.22);
+            border-radius: 20px;
+            padding: 0.32rem 0.6rem;
+            font-size: 0.72rem;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+        .cycle-build {
+            top: 8px;
+            left: 88px;
+        }
+
+        .cycle-review {
+            top: 103px;
+            right: -25px;
+        }
+
+        .cycle-validate {
+            bottom: 8px;
+            left: 82px;
+        }
+
+        .cycle-integrate {
+            top: 103px;
+            left: -25px;
+        }
+
+        .cycle-arrow {
+            position: absolute;
+            color: #A84F2D;
+            font-size: 1.25rem;
+            font-weight: 800;
+        }
+
+        .arrow-1 {
+            top: 48px;
+            right: 32px;
+            transform: rotate(45deg);
+        }
+
+        .arrow-2 {
+            bottom: 42px;
+            right: 35px;
+            transform: rotate(135deg);
+        }
+
+        .arrow-3 {
+            bottom: 42px;
+            left: 35px;
+            transform: rotate(225deg);
+        }
+
+        .arrow-4 {
+            top: 48px;
+            left: 32px;
+            transform: rotate(315deg);
+        }
+
+        .team-closing {
+            max-width: 850px;
+            margin: 1.4rem auto 0 auto;
+            text-align: center;
+            border-top: 1px solid rgba(16, 47, 70, 0.22);
+            padding-top: 0.9rem;
+            color: #102F46;
+            font-size: 1.05rem;
+            font-weight: 700;
+        }
+
+        .team-signature {
+            text-align: center;
+            color: #A84F2D;
+            font-size: 0.75rem;
+            font-weight: 800;
+            letter-spacing: 0.14em;
+            margin-top: 0.5rem;
+        }
+
+        @media (max-width: 700px) {
+            .team-grid {
+                grid-template-columns: 1fr;
+                gap: 1.4rem;
+            }
+
+            .photo-placeholder {
+                width: 120px;
+                height: 120px;
+            }
+
+            .work-cycle {
+                transform: scale(0.88);
+                margin-top: -0.5rem;
+                margin-bottom: -0.5rem;
+            }
+
+            .team-page {
+                padding-left: 0.2rem;
+                padding-right: 0.2rem;
+            }
+        }
+        </style>
+
+        <div class="team-page">
+
+            <div class="team-title">
+                ¿Quién hizo posible este proyecto?
+            </div>
+
+            <div class="team-subtitle">
+                Tres personas, un proceso compartido y una misma responsabilidad sobre el resultado.
+            </div>
+
+            <div class="team-grid">
+
+                <div class="team-card">
+                    <div class="photo-placeholder">NA</div>
+                    <div class="team-name">Naomy Alvarado Zúñiga</div>
+                    <div class="team-project">EQUIPO ACI94</div>
+                </div>
+
+                <div class="team-card">
+                    <div class="photo-placeholder">DS</div>
+                    <div class="team-name">Dalay Sánchez Brenes</div>
+                    <div class="team-project">EQUIPO ACI94</div>
+                </div>
+
+                <div class="team-card">
+                    <div class="photo-placeholder">VM</div>
+                    <div class="team-name">Vladímir Marín Durán</div>
+                    <div class="team-project">EQUIPO ACI94</div>
+                </div>
+
+            </div>
+
+            <div class="work-title">
+                NUESTRA FORMA DE TRABAJO
+            </div>
+
+            <div class="work-cycle">
+
+                <div class="cycle-item cycle-build">CONSTRUIR</div>
+                <div class="cycle-item cycle-review">REVISAR</div>
+                <div class="cycle-item cycle-validate">VALIDAR</div>
+                <div class="cycle-item cycle-integrate">INTEGRAR</div>
+
+                <div class="cycle-arrow arrow-1">→</div>
+                <div class="cycle-arrow arrow-2">→</div>
+                <div class="cycle-arrow arrow-3">→</div>
+                <div class="cycle-arrow arrow-4">→</div>
+
+                <div class="cycle-center">
+                    TRABAJO<br>COMPARTIDO
+                </div>
+
+            </div>
+
+            <div class="team-closing">
+                No solo construimos un modelo. Construimos un proceso
+                trazable, reproducible y defendible.
+            </div>
+
+            <div class="team-signature">
+                ACI94 · DATA · EVIDENCE · IMPACT
+            </div>
+
+        </div>
+        """
+    )
+
+    if st.button(
+        "← NUEVA PREDICCIÓN",
+        use_container_width=True,
+        key="demo04_new"
+    ):
+        st.session_state.screen = "profile"
+        st.rerun()
