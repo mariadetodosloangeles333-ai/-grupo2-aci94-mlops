@@ -135,7 +135,7 @@ def build_reference_and_batches(df: pd.DataFrame, random_state: int = 42):
     # Se envejece la población un poco y se reduce ligeramente hours-per-week,
     # simulando un cambio demográfico gradual (ej. una campaña que atrajo
     # usuarios algo mayores, o temporada con jornadas más cortas).
-     lote_2["age"] = (lote_2["age"] + 3).clip(upper=90)
+    lote_2["age"] = (lote_2["age"] + 5).clip(upper=90)
     lote_2["hours-per-week"] = (lote_2["hours-per-week"] * 0.95).clip(lower=1, upper=99).round()
     # Se sobre-representa un poco la categoría "Bachelors" en education
     mask = lote_2.sample(frac=0.10, random_state=random_state).index
