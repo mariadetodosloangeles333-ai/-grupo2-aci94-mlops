@@ -82,9 +82,11 @@ _(Pendiente)_ Endpoint(s) disponibles, ejemplo de request/response de
 `POST /predict`.
 
 ## 11. Monitoring
-_(Pendiente)_ Qué se monitorea (data drift, performance del modelo, métricas
-operativas) y cómo se simula/detecta drift.
-
+los umbrales de PSI usados (OK<0.10, WARNING 0.10-0.25, ALERT>=0.25) y por qué (estándar de industria), los 6 tipos de problemas simulados en data quality gates, y la lógica de MANTENER/REVISAR/CONSIDERAR REENTRENAMIENTO con la explicación de Drift ≠ Model Degradation. 
+Comandos para correr los 3 scripts.
+*python src/monitoring/retraining_decision.py
+*python src/monitoring/drift_detection.py
+*python src/monitoring/data_quality_gates.py
 ## 12. Results
 _(Pendiente)_ Métricas finales del mejor modelo y comparación entre los
 modelos evaluados.
