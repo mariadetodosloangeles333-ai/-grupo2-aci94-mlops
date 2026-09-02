@@ -26,6 +26,13 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+# Asegura que el directorio raíz del proyecto esté en el path de Python,
+# para que "from src.monitoring.drift_detection import ..." funcione sin
+# importar desde dónde se ejecute este script.
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
 LOG_DIR = Path("logs")
 LOG_DIR.mkdir(exist_ok=True)
 
