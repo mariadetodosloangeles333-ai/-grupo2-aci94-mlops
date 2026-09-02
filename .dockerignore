@@ -1,0 +1,27 @@
+# Entorno local
+.venv/
+venv/
+
+# Git
+.git/
+.gitignore
+
+# Datos y resultados locales
+data/
+logs/
+notebooks/
+
+# Cache de Python y pruebas
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# MLflow local
+mlruns/
+mlartifacts/
+mlflow.db
+
+# Archivos del sistema/editor
+.vscode/
+.DS_Store
+Thumbs.db
