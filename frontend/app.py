@@ -726,5 +726,307 @@ elif st.session_state.screen == "result":
             st.rerun()
 
 elif st.session_state.screen == "demo_01":
-    st.title("¿Cómo llegamos hasta esta predicción?")
-    
+
+    st.html(
+        """
+        <style>
+        .demo-page {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0.5rem 1rem 2rem 1rem;
+        }
+
+        .demo-title {
+            text-align: center;
+            color: #102F46;
+            font-size: clamp(2rem, 4vw, 3.6rem);
+            font-weight: 800;
+            line-height: 1.05;
+            margin-bottom: 0.4rem;
+        }
+
+        .demo-subtitle {
+            text-align: center;
+            color: #40515B;
+            font-size: 1.05rem;
+            margin-bottom: 2rem;
+        }
+
+        .pipeline-demo {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 0.7rem;
+            align-items: stretch;
+        }
+
+        .pipeline-card {
+            background: rgba(250, 244, 226, 0.78);
+            border: 1px solid rgba(16, 47, 70, 0.22);
+            border-radius: 10px;
+            padding: 1rem 0.7rem;
+            text-align: center;
+            min-height: 175px;
+        }
+
+        .pipeline-number {
+            width: 32px;
+            height: 32px;
+            margin: 0 auto 0.7rem auto;
+            border-radius: 50%;
+            background: #102F46;
+            color: #F7EED6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+        }
+
+        .pipeline-label {
+            color: #102F46;
+            font-weight: 800;
+            font-size: 0.9rem;
+            min-height: 40px;
+        }
+
+        .pipeline-value {
+            color: #A84F2D;
+            font-size: 1.45rem;
+            font-weight: 800;
+            margin-top: 0.7rem;
+        }
+
+        .pipeline-detail {
+            color: #4E5C56;
+            font-size: 0.78rem;
+            margin-top: 0.35rem;
+            line-height: 1.25;
+        }
+
+        .evidence-title {
+            margin-top: 1.5rem;
+            margin-bottom: 0.8rem;
+            text-align: center;
+            color: #102F46;
+            font-size: 1.2rem;
+            font-weight: 800;
+            letter-spacing: 0.05em;
+        }
+
+        .evidence-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.8rem;
+        }
+
+        .evidence-card {
+            background: rgba(250, 244, 226, 0.82);
+            border: 1px solid rgba(16, 47, 70, 0.22);
+            border-radius: 10px;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .evidence-main {
+            color: #102F46;
+            font-size: 1.2rem;
+            font-weight: 800;
+        }
+
+        .evidence-accent {
+            color: #647343;
+            font-size: 1.55rem;
+            font-weight: 800;
+            margin: 0.2rem 0;
+        }
+
+        .evidence-small {
+            color: #4E5C56;
+            font-size: 0.82rem;
+        }
+
+        .demo-closing {
+            margin: 1rem auto 0 auto;
+            max-width: 850px;
+            text-align: center;
+            color: #102F46;
+            font-weight: 650;
+            font-size: 0.95rem;
+            padding: 0.7rem 1rem;
+            border-top: 1px solid rgba(16, 47, 70, 0.22);
+        }
+
+        @media (max-width: 900px) {
+            .pipeline-demo {
+                grid-template-columns: 1fr;
+            }
+
+            .pipeline-card {
+                min-height: auto;
+                text-align: left;
+                padding: 0.9rem 1rem;
+            }
+
+            .pipeline-number {
+                margin: 0 0 0.5rem 0;
+            }
+
+            .pipeline-label {
+                min-height: auto;
+            }
+
+            .evidence-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 520px) {
+            .evidence-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .demo-page {
+                padding-left: 0.2rem;
+                padding-right: 0.2rem;
+            }
+        }
+        </style>
+
+        <div class="demo-page">
+
+            <div class="demo-title">
+                ¿Cómo llegamos hasta esta predicción?
+            </div>
+
+            <div class="demo-subtitle">
+                Un recorrido trazable desde los datos originales hasta el modelo en producción.
+            </div>
+
+            <div class="pipeline-demo">
+
+                <div class="pipeline-card">
+                    <div class="pipeline-number">1</div>
+                    <div class="pipeline-label">DATOS RAW</div>
+                    <div class="pipeline-value">48,842</div>
+                    <div class="pipeline-detail">
+                        registros originales<br>UCI Adult Census Income
+                    </div>
+                </div>
+
+                <div class="pipeline-card">
+                    <div class="pipeline-number">2</div>
+                    <div class="pipeline-label">VALIDACIÓN</div>
+                    <div class="pipeline-value">7 / 7 PASS</div>
+                    <div class="pipeline-detail">
+                        Quality Gates<br>sobre datos limpios
+                    </div>
+                </div>
+
+                <div class="pipeline-card">
+                    <div class="pipeline-number">3</div>
+                    <div class="pipeline-label">DATOS CLEAN</div>
+                    <div class="pipeline-value">48,790</div>
+                    <div class="pipeline-detail">
+                        registros validados<br>y listos para modelar
+                    </div>
+                </div>
+
+                <div class="pipeline-card">
+                    <div class="pipeline-number">4</div>
+                    <div class="pipeline-label">PREPARACIÓN</div>
+                    <div class="pipeline-value">Pipeline</div>
+                    <div class="pipeline-detail">
+                        imputación · codificación<br>transformaciones
+                    </div>
+                </div>
+
+                <div class="pipeline-card">
+                    <div class="pipeline-number">5</div>
+                    <div class="pipeline-label">ENTRENAMIENTO</div>
+                    <div class="pipeline-value">5-Fold CV</div>
+                    <div class="pipeline-detail">
+                        Random Forest<br>validación estratificada
+                    </div>
+                </div>
+
+                <div class="pipeline-card">
+                    <div class="pipeline-number">6</div>
+                    <div class="pipeline-label">MLFLOW</div>
+                    <div class="pipeline-value">Tracking</div>
+                    <div class="pipeline-detail">
+                        experimentos, métricas<br>y trazabilidad
+                    </div>
+                </div>
+
+                <div class="pipeline-card">
+                    <div class="pipeline-number">7</div>
+                    <div class="pipeline-label">PRODUCTION</div>
+                    <div class="pipeline-value">Production v1</div>
+                    <div class="pipeline-detail">
+                        modelo registrado<br>y versionado
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="evidence-title">
+                EVIDENCIA PRINCIPAL
+            </div>
+
+            <div class="evidence-grid">
+
+                <div class="evidence-card">
+                    <div class="evidence-main">CALIDAD</div>
+                    <div class="evidence-accent">7 / 7 PASS</div>
+                    <div class="evidence-small">Quality Gates superados</div>
+                </div>
+
+                <div class="evidence-card">
+                    <div class="evidence-main">CRITERIO PRINCIPAL</div>
+                    <div class="evidence-accent">G-Mean 0.8374</div>
+                    <div class="evidence-small">desempeño sobre test</div>
+                </div>
+
+                <div class="evidence-card">
+                    <div class="evidence-main">MODELO FINAL</div>
+                    <div class="evidence-accent">Random Forest</div>
+                    <div class="evidence-small">v2_without_sensitive</div>
+                </div>
+
+                <div class="evidence-card">
+                    <div class="evidence-main">TRAZABILIDAD</div>
+                    <div class="evidence-accent">Production v1</div>
+                    <div class="evidence-small">registrado mediante MLflow</div>
+                </div>
+
+            </div>
+
+            <div class="demo-closing">
+                La predicción que usted acaba de ver proviene de datos validados y de un modelo
+                evaluado, registrado y versionado.
+            </div>
+
+        </div>
+        """,
+    )
+
+    col_new, col_next = st.columns([1, 1])
+
+    with col_new:
+        if st.button(
+            "← NUEVA PREDICCIÓN",
+            use_container_width=True
+        ):
+            st.session_state.screen = "profile"
+            st.rerun()
+
+    with col_next:
+        if st.button(
+            "¿CÓMO FUNCIONA LA PREDICCIÓN? →",
+            use_container_width=True,
+            type="primary"
+        ):
+            st.session_state.screen = "demo_02"
+            st.rerun()
+
+elif st.session_state.screen == "demo_02":
+    st.title("¿Cómo funciona la predicción?")
