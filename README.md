@@ -82,8 +82,6 @@ _(Pendiente)_ Endpoint(s) disponibles, ejemplo de request/response de
 `POST /predict`.
 
 ## 11. Monitoring
-## 11. Monitoring
-
 El sistema de monitoreo cubre tres frentes: **detección de drift**, **calidad de datos en producción**, y **decisión de reentrenamiento**. El código vive en `src/monitoring/`.
 
 ### 11.1 Drift Detection (`src/monitoring/drift_detection.py`)
@@ -141,7 +139,7 @@ Solo se recomienda reentrenar cuando **ambas** señales (drift relevante + caíd
 Correr:
 ```bash
 python src/monitoring/retraining_decision.py
-```
+
 ## 12. Results
 _(Pendiente)_ Métricas finales del mejor modelo y comparación entre los
 modelos evaluados.
