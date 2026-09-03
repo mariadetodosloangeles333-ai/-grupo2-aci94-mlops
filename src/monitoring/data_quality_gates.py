@@ -20,7 +20,6 @@ Ejecutar como demo:
 
 import logging
 import sys
-from datetime import datetime
 from pathlib import Path
 
 import numpy as np
@@ -33,8 +32,11 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-LOG_DIR = Path("logs")
-LOG_DIR.mkdir(exist_ok=True)
+LOG_DIR = PROJECT_ROOT / "logs"
+LOG_DIR.mkdir(
+    parents=True,
+    exist_ok=True,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -75,9 +77,16 @@ def contaminate_batch(df: pd.DataFrame, random_state: int = 7) -> pd.DataFrame:
     contaminated["age"] = contaminated["age"].astype(object)
     contaminated.loc[idx_bad_type, "age"] = "treinta"
 
-    # 5. Unknown category: un país que no debería existir.
-    idx_unknown_cat = rng.choice(contaminated.index, size=1, replace=False)
-    contaminated.loc[idx_unknown_cat, "native-country"] = "UNKNOWN_NEW_COUNTRY"
+    # 5. Categoría desconocida en una variable utilizada por el modelo.
+    idx_unknown_cat = rng.choice(
+        contaminated.index,
+        size=1,
+        replace=False,
+    )
+    contaminated.loc[
+        idx_unknown_cat,
+        "occupation",
+    ] = "UNKNOWN_NEW_OCCUPATION"
 
     # 6. Schema modification: aparece una columna que no debería existir.
     contaminated["unexpected_new_field"] = "algo_no_esperado"
@@ -95,19 +104,33 @@ def contaminate_batch(df: pd.DataFrame, random_state: int = 7) -> pd.DataFrame:
 # Paso 2: Reglas de validación (Data Quality Gates)
 # ---------------------------------------------------------------------------
 EXPECTED_COLUMNS = [
-    "age", "workclass", "fnlwgt", "education", "education-num",
-    "marital-status", "occupation", "relationship", "race", "sex",
-    "capital-gain", "capital-loss", "hours-per-week", "native-country", "income",
+    "age",
+    "education-num",
+    "hours-per-week",
+    "capital-gain",
+    "capital-loss",
+    "workclass",
+    "marital-status",
+    "occupation",
+    "relationship",
 ]
 
-VALID_NATIVE_COUNTRIES = {
-    "United-States", "Mexico", "Philippines", "Germany", "Puerto-Rico",
-    "Canada", "India", "El-Salvador", "Cuba", "England", "China", "South",
-    "Jamaica", "Italy", "Dominican-Republic", "Japan", "Guatemala", "Poland",
-    "Vietnam", "Columbia", "Haiti", "Portugal", "Taiwan", "Iran", "Nicaragua",
-    "Greece", "Peru", "Ecuador", "France", "Ireland", "Hong", "Thailand",
-    "Cambodia", "Trinadad&Tobago", "Laos", "Outlying-US(Guam-USVI-etc)",
-    "Yugoslavia", "Scotland", "Honduras", "Hungary", "Holand-Netherlands", "?",
+VALID_OCCUPATIONS = {
+    "Adm-clerical",
+    "Armed-Forces",
+    "Craft-repair",
+    "Exec-managerial",
+    "Farming-fishing",
+    "Handlers-cleaners",
+    "Machine-op-inspct",
+    "Other-service",
+    "Priv-house-serv",
+    "Prof-specialty",
+    "Protective-serv",
+    "Sales",
+    "Tech-support",
+    "Transport-moving",
+    "Unknown",
 }
 
 
@@ -122,45 +145,117 @@ def validate_batch(df: pd.DataFrame) -> list[dict]:
     """
     incidents = []
 
-    # Regla 1: esquema — no deben aparecer columnas inesperadas.
+    # Regla 1: esquema — deben estar todas las columnas productivas
+    # y no deben aparecer columnas adicionales.
+    missing_cols = set(EXPECTED_COLUMNS) - set(df.columns)
     extra_cols = set(df.columns) - set(EXPECTED_COLUMNS)
+
+    if missing_cols:
+        incidents.append(
+            {
+                "rule": "missing_required_columns",
+                "severity": "BLOCK",
+                "detail": (
+                    "Faltan columnas requeridas en el esquema productivo: "
+                    f"{sorted(missing_cols)}"
+                ),
+            }
+        )
+
     if extra_cols:
-        incidents.append({
-            "rule": "schema_check",
-            "severity": "BLOCK",
-            "detail": f"Columnas no esperadas en el esquema: {extra_cols}",
-        })
+        incidents.append(
+            {
+                "rule": "unexpected_columns",
+                "severity": "BLOCK",
+                "detail": (
+                    "Se encontraron columnas no esperadas en el esquema "
+                    f"productivo: {sorted(extra_cols)}"
+                ),
+            }
+        )
 
     # Regla 2: tipo de dato — age debe poder convertirse a numérico.
-    non_numeric_age = pd.to_numeric(df["age"], errors="coerce").isna() & df["age"].notna()
-    if non_numeric_age.any():
-        incidents.append({
-            "rule": "dtype_check_age",
-            "severity": "BLOCK",
-            "detail": f"{non_numeric_age.sum()} valores de 'age' no son numéricos "
-                      f"(ej: {df.loc[non_numeric_age, 'age'].unique()[:3].tolist()})",
-        })
+    # La comprobación se realiza únicamente si la columna está presente;
+    # su ausencia ya fue registrada como una violación de esquema.
+    if "age" in df.columns:
+        numeric_age = pd.to_numeric(
+            df["age"],
+            errors="coerce",
+        )
 
-    # Regla 3: rangos — age debe estar entre 16 y 100 (ignora los no-numéricos,
-    # ya cubiertos por la regla anterior).
-    numeric_age = pd.to_numeric(df["age"], errors="coerce")
-    out_of_range = numeric_age.dropna().between(16, 100) == False
-    if out_of_range.any():
-        incidents.append({
-            "rule": "range_check_age",
-            "severity": "BLOCK",
-            "detail": f"{out_of_range.sum()} valores de 'age' fuera de rango (16-100), "
-                      f"ej: {numeric_age.dropna()[out_of_range].unique()[:3].tolist()}",
-        })
+        non_numeric_age = (
+            numeric_age.isna()
+            & df["age"].notna()
+        )
 
-    # Regla 4: missing values — no debería haber nulos en 'occupation'.
-    missing_occupation = df["occupation"].isna().sum()
-    if missing_occupation > 0:
-        incidents.append({
-            "rule": "missing_values_occupation",
-            "severity": "WARN",
-            "detail": f"{missing_occupation} valores faltantes en 'occupation'",
-        })
+        if non_numeric_age.any():
+            invalid_examples = (
+                df.loc[
+                    non_numeric_age,
+                    "age",
+                ]
+                .unique()[:3]
+                .tolist()
+            )
+
+            incidents.append(
+                {
+                    "rule": "dtype_check_age",
+                    "severity": "BLOCK",
+                    "detail": (
+                        f"{int(non_numeric_age.sum())} valores de 'age' "
+                        "no son numéricos "
+                        f"(ejemplos: {invalid_examples})"
+                    ),
+                }
+            )
+
+        # Regla 3: age debe coincidir con el rango aceptado por FastAPI.
+        valid_numeric_age = numeric_age.dropna()
+        out_of_range = ~valid_numeric_age.between(
+            17,
+            90,
+        )
+
+        if out_of_range.any():
+            outlier_examples = (
+                valid_numeric_age.loc[
+                    out_of_range
+                ]
+                .unique()[:3]
+                .tolist()
+            )
+
+            incidents.append(
+                {
+                    "rule": "range_check_age",
+                    "severity": "BLOCK",
+                    "detail": (
+                        f"{int(out_of_range.sum())} valores de 'age' "
+                        "fuera de rango (17-90) "
+                        f"(ejemplos: {outlier_examples})"
+                    ),
+                }
+            )
+
+    # Regla 4: valores faltantes en una variable productiva.
+    # La ausencia completa de occupation ya se controla en el esquema.
+    if "occupation" in df.columns:
+        missing_occupation = int(
+            df["occupation"].isna().sum()
+        )
+
+        if missing_occupation > 0:
+            incidents.append(
+                {
+                    "rule": "missing_values_occupation",
+                    "severity": "WARN",
+                    "detail": (
+                        f"{missing_occupation} valores faltantes "
+                        "en 'occupation'"
+                    ),
+                }
+            )
 
     # Regla 5: duplicados — no debería haber filas 100% repetidas.
     dup_count = df.duplicated().sum()
@@ -171,14 +266,31 @@ def validate_batch(df: pd.DataFrame) -> list[dict]:
             "detail": f"{dup_count} filas duplicadas encontradas",
         })
 
-    # Regla 6: categoría desconocida — native-country debe estar en el catálogo conocido.
-    unknown_countries = set(df["native-country"].dropna().unique()) - VALID_NATIVE_COUNTRIES
-    if unknown_countries:
-        incidents.append({
-            "rule": "unknown_category_native_country",
-            "severity": "WARN",
-            "detail": f"Categorías nuevas/desconocidas en 'native-country': {unknown_countries}",
-        })
+    # Regla 6: categoría nueva en una variable productiva.
+    if "occupation" in df.columns:
+        observed_occupations = set(
+            df["occupation"]
+            .dropna()
+            .astype(str)
+            .str.strip()
+        )
+
+        unknown_occupations = (
+            observed_occupations
+            - VALID_OCCUPATIONS
+        )
+
+        if unknown_occupations:
+            incidents.append(
+                {
+                    "rule": "unknown_category_occupation",
+                    "severity": "WARN",
+                    "detail": (
+                        "Categorías nuevas o desconocidas en "
+                        f"'occupation': {sorted(unknown_occupations)}"
+                    ),
+                }
+            )
 
     return incidents
 
@@ -220,7 +332,39 @@ def run_data_quality_demo():
     batches = build_reference_and_batches(df)
 
     # Usamos el lote 2 como base para la contaminación (podría ser cualquiera).
-    clean_batch = batches["lote_2_moderado"]
+    raw_batch = batches[
+        "lote_2_moderado"
+    ]
+
+    # Monitoring utiliza únicamente el contrato de entrada de Production v2.
+    clean_batch = raw_batch.loc[
+        :,
+        EXPECTED_COLUMNS,
+    ].copy()
+
+    # Simular la estructura que llegaría al servicio después de normalizar
+    # las categorías faltantes conocidas.
+    categorical_columns = [
+        "workclass",
+        "marital-status",
+        "occupation",
+        "relationship",
+    ]
+
+    for column in categorical_columns:
+        clean_batch[column] = (
+            clean_batch[column]
+            .replace("?", np.nan)
+            .fillna("Unknown")
+        )
+
+    # El batch base debe iniciar sin duplicados para que los duplicados
+    # detectados correspondan únicamente a la contaminación simulada.
+    clean_batch = (
+        clean_batch
+        .drop_duplicates()
+        .reset_index(drop=True)
+    )
 
     print("=" * 70)
     print("DATA QUALITY GATES - Simulación de contaminación sobre una copia")
@@ -237,7 +381,7 @@ def run_data_quality_demo():
 
     # Confirmación explícita de que el dataset original sigue intacto.
     original_check = load_raw_data()
-    assert original_check.shape == df.shape, "¡El dataset original fue modificado!"
+    pd.testing.assert_frame_equal(original_check, df)
     print(">>> Verificado: el dataset original (data/raw/) permanece intacto.")
 
     return final_status

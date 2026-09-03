@@ -14,8 +14,7 @@ Mide el cambio de distribución con PSI (Population Stability Index),
 la métrica más estándar y fácil de justificar para este tipo de proyecto.
 
 IMPORTANTE: este script NUNCA modifica data/raw/ ni data/processed/.
-Todos los "lotes" se generan en memoria (o se guardan aparte en
-data/monitoring/ si se quiere dejar evidencia), a partir de copias.
+Todos los "lotes" se generan en memoria a partir de copias.
 
 Ejecutar como demo:
     python src/monitoring/drift_detection.py
@@ -25,12 +24,19 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 
-RAW_DATA_PATH = "data/raw/adult_raw.csv"
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+RAW_DATA_PATH = (
+    PROJECT_ROOT
+    / "data"
+    / "raw"
+    / "adult_raw.csv"
+)
 
 # ---------------------------------------------------------------------------
-# Umbrales de PSI (est\u00e1ndar de la industria, ampliamente citado en la
-# literatura de model monitoring; no son ley universal, pero s\u00ed un punto
-# de partida razonable y f\u00e1cil de justificar):
+# Umbrales de PSI utilizados comúnmente en la industria y citados en la
+# literatura de model monitoring. No son una regla universal, sino un punto
+# de partida razonable:
 #
 #   PSI < 0.10            -> sin cambio significativo               -> OK
 #   0.10 <= PSI < 0.25     -> cambio moderado, vigilar de cerca       -> WARNING
@@ -41,8 +47,16 @@ PSI_THRESHOLD_ALERT = 0.25
 
 # Columnas sobre las que vamos a monitorear drift (mezcla de numérica y
 # categórica, para mostrar que la técnica aplica a ambos tipos).
-NUMERIC_COLUMNS_TO_MONITOR = ["age", "hours-per-week"]
-CATEGORICAL_COLUMNS_TO_MONITOR = ["education"]
+# Todas pertenecen al contrato productivo de v2_without_sensitive.
+NUMERIC_COLUMNS_TO_MONITOR = [
+    "age",
+    "education-num",
+    "hours-per-week",
+]
+
+CATEGORICAL_COLUMNS_TO_MONITOR = [
+    "occupation",
+]
 
 
 # ---------------------------------------------------------------------------
@@ -113,7 +127,7 @@ def load_raw_data() -> pd.DataFrame:
 def build_reference_and_batches(df: pd.DataFrame, random_state: int = 42):
     """
     Divide el dataset histórico en:
-        - reference: 40% de los datos, tomado como "lo que el modelo conoce"
+        - reference: 40% de los datos, utilizado como referencia histórica simulada
         - lote_1_normal:   otro 20%, SIN alterar -> distribución muy parecida
         - lote_2_moderado: otro 20%, con una alteración moderada
         - lote_3_fuerte:   otro 20%, con una alteración fuerte
@@ -121,7 +135,24 @@ def build_reference_and_batches(df: pd.DataFrame, random_state: int = 42):
     Las alteraciones son completamente sintéticas y se hacen sobre COPIAS
     en memoria; el dataframe original (df) nunca se modifica.
     """
-    df_shuffled = df.sample(frac=1.0, random_state=random_state).reset_index(drop=True)
+    prepared_df = df.copy(deep=True)
+
+    # El contrato productivo representa los valores faltantes conocidos
+    # mediante la categoría "Unknown".
+    prepared_df["occupation"] = (
+        prepared_df["occupation"]
+        .replace("?", np.nan)
+        .fillna("Unknown")
+    )
+
+    df_shuffled = (
+        prepared_df
+        .sample(
+            frac=1.0,
+            random_state=random_state,
+        )
+        .reset_index(drop=True)
+    )
     n = len(df_shuffled)
 
     reference = df_shuffled.iloc[: int(n * 0.4)].copy()
@@ -137,17 +168,51 @@ def build_reference_and_batches(df: pd.DataFrame, random_state: int = 42):
     # usuarios algo mayores, o temporada con jornadas más cortas).
     lote_2["age"] = (lote_2["age"] + 4).clip(upper=90)
     lote_2["hours-per-week"] = (lote_2["hours-per-week"] * 0.95).clip(lower=1, upper=99).round()
-    # Se sobre-representa un poco la categoría "Bachelors" en education
-    mask = lote_2.sample(frac=0.10, random_state=random_state).index
-    lote_2.loc[mask, "education"] = "Bachelors"
+    # Se modifica ligeramente education-num y se sobre-representa
+    # una ocupación válida del contrato productivo.
+    moderate_mask = lote_2.sample(
+        frac=0.10,
+        random_state=random_state,
+    ).index
+
+    lote_2.loc[
+        moderate_mask,
+        "education-num",
+    ] = (
+        lote_2.loc[
+            moderate_mask,
+            "education-num",
+        ]
+        + 1
+    ).clip(
+        lower=1,
+        upper=16,
+    )
+
+    lote_2.loc[
+        moderate_mask,
+        "occupation",
+    ] = "Prof-specialty"
 
     # --- Lote 3: cambio FUERTE ---
     # Simula un cambio grande en la población de entrada (ej. la fuente de
     # datos cambió de canal/segmento por completo).
     lote_3["age"] = (lote_3["age"] + 20).clip(upper=90)
     lote_3["hours-per-week"] = (lote_3["hours-per-week"] * 1.6).clip(lower=1, upper=99).round()
-    mask = lote_3.sample(frac=0.7, random_state=random_state).index
-    lote_3.loc[mask, "education"] = "Doctorate"
+    strong_mask = lote_3.sample(
+        frac=0.70,
+        random_state=random_state,
+    ).index
+
+    lote_3.loc[
+        strong_mask,
+        "education-num",
+    ] = 16
+
+    lote_3.loc[
+        strong_mask,
+        "occupation",
+    ] = "Prof-specialty"
 
     return {
         "reference": reference,

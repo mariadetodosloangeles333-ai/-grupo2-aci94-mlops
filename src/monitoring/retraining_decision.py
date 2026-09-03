@@ -12,21 +12,36 @@ automáticamente que el modelo esté funcionando peor. Por eso la decisión
 de reentrenar combina DOS señales, no una sola:
 
     1. ¿Hay drift? (PSI, de drift_detection.py)
-    2. ¿El desempeño del modelo se deterioró? (métrica de negocio, ej. F1/AUC)
+    2. ¿El desempeño del modelo se deterioró? (G-Mean)
 
 La combinación de ambas produce una de tres recomendaciones:
 
     MANTENER                      -> sin drift relevante y desempeño estable
-    REVISAR                       -> hay drift pero el desempeño sigue bien
-                                      (monitorear de cerca, no actuar aún)
+    REVISAR                       -> hay una sola señal: drift relevante o
+                                    deterioro significativo del desempeño
     CONSIDERAR REENTRENAMIENTO    -> hay drift relevante Y el desempeño
-                                      se deterioró de forma significativa
+                                    se deterioró de forma significativa
 
 Ejecutar como demo:
     python src/monitoring/retraining_decision.py
 """
 
+import sys
 from dataclasses import dataclass
+from pathlib import Path
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(
+        0,
+        str(PROJECT_ROOT),
+    )
+
+from src.monitoring.drift_detection import (  # noqa: E402
+    PSI_THRESHOLD_WARNING,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -35,10 +50,14 @@ from dataclasses import dataclass
 # Se usa el umbral de WARNING (no el de ALERT) como disparador de "hay drift"
 # para esta decisión: incluso un cambio moderado de distribución merece
 # cruzarse con el desempeño, no solo los cambios extremos.
-PSI_DRIFT_THRESHOLD = 0.10          # mismo umbral WARNING usado en drift_detection.py
-PERFORMANCE_DROP_THRESHOLD = 0.05   # una caída de 5 puntos porcentuales en la
-                                     # métrica principal (ej. F1) se considera
-                                     # deterioro significativo del modelo.
+PSI_DRIFT_THRESHOLD = PSI_THRESHOLD_WARNING
+
+# G-Mean aprobado del modelo Production v1 sobre el conjunto de test.
+PRODUCTION_G_MEAN = 0.8374
+
+# Una caída absoluta de cinco puntos porcentuales en G-Mean activa
+# una señal de deterioro significativo.
+PERFORMANCE_DROP_THRESHOLD = 0.05
 
 
 @dataclass
@@ -64,11 +83,10 @@ def decide_retraining(
     Parámetros:
         max_psi: el PSI más alto detectado entre las columnas monitoreadas
                  (viene de drift_detection.evaluate_drift_for_batch).
-        baseline_metric: métrica de desempeño del modelo cuando se entrenó
-                 (ej. F1-score en el set de validación original).
-        current_metric: métrica de desempeño del modelo en el batch de
-                 producción actual (requiere tener ground truth, aunque sea
-                 de una muestra etiquetada posteriormente).
+        baseline_metric: G-Mean de referencia del modelo aprobado.
+        current_metric: G-Mean observado en el batch actual. Este valor
+                requiere ground truth disponible posteriormente y, en la
+                demostración, se representa mediante valores simulados.
 
     Lógica:
         - Sin drift relevante (PSI < umbral):
@@ -90,7 +108,7 @@ def decide_retraining(
             f"No hay drift relevante (PSI={max_psi:.3f} < {psi_threshold}) y el "
             f"desempeño se mantiene estable (caída de {performance_drop:.3f}, "
             f"por debajo del umbral de {performance_drop_threshold}). "
-            "El modelo sigue siendo confiable."
+            "No se activa una señal de reentrenamiento para este batch."
         )
 
     elif has_drift and not has_performance_degradation:
@@ -137,22 +155,39 @@ def decide_retraining(
 
 def run_retraining_decision_demo():
     """
-    Corre la lógica sobre 3 escenarios de ejemplo, reflejando los 3 lotes
-    de drift_detection.py, para mostrar cómo la misma señal de drift puede
-    llevar a decisiones distintas según el desempeño observado.
+    Ejecuta la lógica sobre tres escenarios ilustrativos.
+
+    El baseline corresponde al G-Mean real de Production v1. Los valores
+    actuales de G-Mean y PSI son simulados para demostrar las posibles
+    decisiones; no representan mediciones de tráfico real de producción.
     """
     scenarios = [
         {
-            "name": "Lote 1 (normal) — sin drift, desempeño estable",
-            "max_psi": 0.02, "baseline_metric": 0.79, "current_metric": 0.78,
+            "name": (
+                "Lote 1 (normal) — sin drift, "
+                "G-Mean simulado estable"
+            ),
+            "max_psi": 0.02,
+            "baseline_metric": PRODUCTION_G_MEAN,
+            "current_metric": 0.83,
         },
         {
-            "name": "Lote 2 (moderado) — drift, pero el modelo sigue funcionando bien",
-            "max_psi": 0.14, "baseline_metric": 0.79, "current_metric": 0.77,
+            "name": (
+                "Lote 2 (moderado) — drift, "
+                "G-Mean simulado estable"
+            ),
+            "max_psi": 0.14,
+            "baseline_metric": PRODUCTION_G_MEAN,
+            "current_metric": 0.81,
         },
         {
-            "name": "Lote 3 (fuerte) — drift alto Y el desempeño se derrumbó",
-            "max_psi": 0.45, "baseline_metric": 0.79, "current_metric": 0.68,
+            "name": (
+                "Lote 3 (fuerte) — drift alto y "
+                "G-Mean simulado deteriorado"
+            ),
+            "max_psi": 0.45,
+            "baseline_metric": PRODUCTION_G_MEAN,
+            "current_metric": 0.72,
         },
     ]
 
