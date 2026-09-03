@@ -17,6 +17,7 @@ from src.monitoring.drift_detection import (
     evaluate_drift_for_batch,
 )
 from src.monitoring.retraining_decision import decide_retraining
+from src.monitoring.model_performance import evaluate_labeled_batch
 
 
 @pytest.fixture
@@ -145,6 +146,83 @@ def test_identical_batch_has_no_drift():
 def test_classify_psi_uses_expected_thresholds(psi_value, expected_status):
     """Los valores de PSI deben respetar los umbrales definidos."""
     assert classify_psi(psi_value) == expected_status
+
+
+# ---------------------------------------------------------------------------
+# MODEL PERFORMANCE MONITORING
+# ---------------------------------------------------------------------------
+def test_labeled_batch_calculates_classification_metrics():
+    """Un batch perfectamente clasificado debe producir métricas iguales a uno."""
+    y_true = ["<=50K", "<=50K", ">50K", ">50K"]
+    y_pred = ["<=50K", "<=50K", ">50K", ">50K"]
+    y_probability = [0.10, 0.20, 0.80, 0.90]
+
+    result = evaluate_labeled_batch(
+        batch_id="production_batch_perfect",
+        y_true=y_true,
+        y_pred=y_pred,
+        y_probability=y_probability,
+    )
+
+    expected_metrics = {
+        "precision",
+        "recall",
+        "specificity",
+        "f1",
+        "g_mean",
+        "roc_auc",
+    }
+
+    assert result["batch_id"] == "production_batch_perfect"
+    assert result["sample_count"] == 4
+    assert result["ground_truth_available"] is True
+    assert set(result["metrics"]) == expected_metrics
+    assert all(
+        metric_value == pytest.approx(1.0)
+        for metric_value in result["metrics"].values()
+    )
+    assert result["performance_degraded"] is False
+
+
+def test_labeled_batch_detects_performance_degradation():
+    """Una caída importante de G-Mean debe activar la señal de deterioro."""
+    y_true = pd.Series(["<=50K", "<=50K", ">50K", ">50K"])
+    y_pred = ["<=50K", "<=50K", "<=50K", "<=50K"]
+    y_probability = [0.10, 0.20, 0.30, 0.40]
+
+    result = evaluate_labeled_batch(
+        batch_id="production_batch_degraded",
+        y_true=y_true,
+        y_pred=y_pred,
+        y_probability=y_probability,
+    )
+
+    assert result["metrics"]["recall"] == pytest.approx(0.0)
+    assert result["metrics"]["g_mean"] == pytest.approx(0.0)
+    assert result["g_mean_drop"] == pytest.approx(0.8374)
+    assert result["performance_degraded"] is True
+
+
+def test_labeled_batch_rejects_different_lengths():
+    """Etiquetas, predicciones y probabilidades deben tener igual longitud."""
+    with pytest.raises(ValueError, match="misma longitud"):
+        evaluate_labeled_batch(
+            batch_id="invalid_batch",
+            y_true=pd.Series(["<=50K", ">50K"]),
+            y_pred=["<=50K"],
+            y_probability=[0.20, 0.80],
+        )
+
+
+def test_labeled_batch_requires_both_classes():
+    """No se deben interpretar G-Mean y AUC si el batch tiene una sola clase."""
+    with pytest.raises(ValueError, match="ambas clases"):
+        evaluate_labeled_batch(
+            batch_id="single_class_batch",
+            y_true=["<=50K", "<=50K", "<=50K"],
+            y_pred=["<=50K", "<=50K", "<=50K"],
+            y_probability=[0.10, 0.20, 0.30],
+        )
 
 
 # ---------------------------------------------------------------------------
