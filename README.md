@@ -102,6 +102,8 @@ Resultados del modelo aprobado (test set):
 | Recall | 0.8660 |
 | Especificidad | 0.8098 |
 
+Ver comparación completa entre modelos en la sección 12 (Results).
+
 Correr:
 ```bash
 python src/training/train.py
@@ -218,8 +220,37 @@ python src/monitoring/retraining_decision.py
 ```
 
 ## 12. Results
-_(Pendiente)_ Métricas finales del mejor modelo y comparación entre los
-modelos evaluados.
+
+### Comparación de modelos ajustados
+
+La selección del modelo se realizó con **validación cruzada** sobre el conjunto de entrenamiento, usando **G-Mean** como métrica principal debido al desbalance de clases. El conjunto de test no se utilizó para seleccionar el modelo.
+
+| Modelo | G-Mean CV | Desv. CV | G-Mean OOF | F1 CV | Recall CV | Especificidad CV | ROC AUC CV |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Logistic Regression | 0.8221 | 0.0072 | 0.8221 | 0.6800 | 0.8490 | 0.7960 | 0.9058 |
+| Decision Tree | 0.8214 | 0.0049 | 0.8215 | 0.6747 | **0.8661** | 0.7792 | 0.9043 |
+| **Random Forest** | **0.8338** | 0.0058 | **0.8338** | **0.6990** | 0.8529 | **0.8151** | **0.9186** |
+
+**Random Forest** fue seleccionado porque obtuvo el mayor G-Mean promedio de validación y OOF, junto con el mejor F1, especificidad y ROC AUC. Aunque Decision Tree presentó un recall ligeramente mayor, su especificidad y equilibrio general entre clases fueron inferiores.
+
+### Evaluación final del modelo seleccionado
+
+Después de seleccionar Random Forest mediante validación cruzada, el modelo fue evaluado **una única vez** sobre el conjunto de test reservado:
+
+| Métrica | Resultado |
+|---|---:|
+| G-Mean | 0.8374 |
+| F1 | 0.7011 |
+| Recall | 0.8660 |
+| Especificidad | 0.8098 |
+| ROC AUC | 0.9219 |
+| Diferencia absoluta validación-test | 0.0036 |
+
+La diferencia reducida entre validación y test (0.0036) indica que el desempeño se mantuvo sobre datos no utilizados en la selección del modelo, sin evidencia importante de sobreajuste.
+
+MLflow almacenó los criterios de selección y validación, la matriz de confusión, la curva ROC, la importancia de variables y el resultado de la validación final, permitiendo reproducir y auditar la evaluación completa.
+
+El modelo fue registrado en MLflow Model Registry con el nombre `adult-income-classifier`; la versión `1` recibió el alias `production`, identificándola como la versión aprobada para el servicio de inferencia (ver sección 8, MLflow).
 
 ## 13. Team
 - Gi — Coordinación y análisis
