@@ -3,22 +3,44 @@
 > Estado: 🚧 en construcción — Etapa 1 (repositorio) completada.
 
 ## 1. Business Problem
-_(Pendiente)_ Describir el problema de negocio: predecir si el ingreso anual de una
-persona supera los US$50,000 a partir de sus características socioeconómicas y
-laborales, y por qué esto es relevante (segmentación, políticas públicas,
-estudios de desigualdad, etc.).
+
+El problema de negocio es **predecir si el ingreso anual de una persona supera los US$50,000**, a partir de sus características socioeconómicas y laborales (edad, ocupación, nivel educativo, horas trabajadas, estado civil, etc.).
+
+**Pregunta de negocio:** ¿qué características socioeconómicas y laborales permiten identificar patrones asociados con personas cuyos ingresos anuales superan los US$50,000?
+
+**Por qué es relevante:** el modelo es aplicable a análisis socioeconómico, políticas públicas, planificación educativa y de empleo, y estudios de desigualdad. El objetivo no es solo predecir, sino que el modelo sea **útil, interpretable y evaluado con responsabilidad** — no busca establecer causalidad, solo identificar patrones asociados en los datos históricos de 1994.
 
 ## 2. Dataset
-_(Pendiente)_ Adult / Census Income Dataset (UCI Machine Learning Repository,
-Barry Becker, censo de EE.UU. de 1994). 48,842 registros, 14 variables
-predictoras + 1 variable objetivo (`income`). Enlace a la fuente original.
+
+**Adult / Census Income Dataset** — UCI Machine Learning Repository, extraído por Barry Becker (Censo de EE.UU., 1994).
+
+| | |
+|---|---|
+| Total de registros | 48,842 (entrenamiento: 32,561 · prueba: 16,281) |
+| Variables | 14 predictoras + 1 variable objetivo (`income`) |
+| Tipo de problema | Clasificación binaria (`≤50K` vs `>50K`) |
+| Balance de clases | ~76.07% `≤50K` vs ~23.93% `>50K` (desbalanceado) |
+
+**Condiciones de extracción originales del dataset:** `(AAGE > 16) && (AGI > 100) && (AFNLWGT > 1) && (HRSWK > 0)` — representa población adulta con ciertas condiciones de participación económica/laboral, no a toda la población.
+
+> **Nota:** el dataset crudo trae 14 variables predictoras. El modelo de producción usa un subconjunto de **9 variables** (`v2_without_sensitive`) — ver sección 7 (Training) y 11 (Monitoring) para el detalle de qué se excluyó y por qué.
+
+Por el desbalance de clases, la evaluación del modelo no puede basarse solo en *accuracy*; se usan métricas como G-Mean, ROC AUC, Recall y Especificidad (ver sección 7).
 
 ## 3. Architecture
-_(Pendiente)_ Diagrama de arquitectura MLOps end-to-end: Fuente de datos → Data
-Ingestion → Raw/Bronze → Data Validation → Data Cleaning → Feature Pipeline →
-Training → Evaluation → MLflow (Tracking + Model Registry) → Best Candidate →
-Dockerize → Model API → Producción → Monitoring (Data Drift / Model
-Performance / System Metrics) → Retrain Trigger.
+
+El flujo end-to-end del proyecto se divide en 3 etapas:
+
+### Pipeline de datos
+![Pipeline de datos](docs/architecture/dark_01_pipeline_datos.png)
+
+### Entrenamiento y registro en MLflow
+![Entrenamiento y MLflow](docs/architecture/dark_02_entrenamiento_mlflow.png)
+
+### Producción y monitoreo
+![Producción y monitoreo](docs/architecture/dark_03_produccion_monitoreo.png)
+
+Cada componente del diagrama corresponde a código real del repositorio: `src/ingestion/`, `src/cleaning/`, `src/features/`, `src/training/`, `src/api/`, y `src/monitoring/`.
 
 ## 4. Repository Structure
 ```
@@ -51,11 +73,19 @@ pip install -r requirements.txt
 ```
 
 ## 6. Data Ingestion
-_(Pendiente — Etapa 2)_ Ejecutar el script reproducible de ingesta:
+
+Script reproducible en `src/ingestion/ingest.py`. Descarga el dataset directamente desde el UCI ML Repository (paquete `ucimlrepo`, `id=2`) — no depende de un CSV guardado a mano en ninguna computadora.
+
+El script:
+1. Descarga features + target desde UCI.
+2. Une ambos en un único dataframe crudo (`income` como columna objetivo).
+3. Valida el mínimo esperado: al menos 48,000 filas y 15 columnas (14 features + `income`).
+4. Guarda el resultado en `data/raw/adult_raw.csv`, con un log de la ingesta en `logs/ingestion.log`.
+
+Correr:
 ```bash
 python src/ingestion/ingest.py
 ```
-Documentar aquí de dónde se obtiene el dataset y cómo se valida al llegar.
 
 ## 7. Training
 
