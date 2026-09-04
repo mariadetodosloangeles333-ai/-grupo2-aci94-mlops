@@ -117,12 +117,14 @@ if st.session_state.screen == "home":
                     <h1>Explore patrones de ingreso con datos del Censo de EE. UU. de 1994</h1>
 
                     <p class="lead">
-                        Explore cómo un modelo de Machine Learning clasifica distintos perfiles
-                        a partir de patrones socioeconómicos y laborales presentes en datos históricos.
+                        <strong>Problema de negocio:</strong> predecir si una persona pertenece
+                        a la categoría de ingreso anual <strong>&gt; US$50K</strong>
+                        analizando además si el modelo presenta
+                        diferencias de comportamiento entre dos subgrupos.
                     </p>
 
                     <div class="principle">
-                        <strong>Información para comprender, no para evaluar personas.</strong>
+                        <strong>Un caso histórico para estudiar ML y MLOps, no para representar la realidad actual.
                     </div>
 
                     <div class="feature-row">
@@ -1006,7 +1008,7 @@ elif st.session_state.screen == "demo_01":
                     <div class="evidence-accent">Random Forest</div>
                     <div class="evidence-small">v2_without_sensitive</div>
                 </div>
-
+               
                 <div class="evidence-card">
                     <div class="evidence-main">TRAZABILIDAD</div>
                     <div class="evidence-accent">Production v1</div>
@@ -1015,9 +1017,83 @@ elif st.session_state.screen == "demo_01":
 
             </div>
 
+            <div style="
+                margin-top: 18px;
+                padding: 18px 22px;
+                border: 1px solid #c9c2b3;
+                border-radius: 8px;
+                background: rgba(255,255,255,0.20);
+            ">
+
+                <div style="
+                    text-align:center;
+                    font-weight:700;
+                    color:#082f49;
+                    font-size:15px;
+                    margin-bottom:4px;
+                ">
+                    ANÁLISIS POR SUBGRUPOS · TEST RESERVADO
+                </div>
+
+                <div style="
+                    text-align:center;
+                    font-size:12px;
+                    margin-bottom:14px;
+                    color:#555;
+                ">
+                    El modelo fue auditado comparando su comportamiento entre Female y Male.
+                </div>
+
+                <div style="
+                    display:grid;
+                    grid-template-columns: 1.4fr 1fr 1fr 1fr;
+                    gap:8px;
+                    text-align:center;
+                    align-items:center;
+                    font-size:12px;
+                ">
+
+                    <div><strong>MÉTRICA</strong></div>
+                    <div><strong>FEMALE</strong></div>
+                    <div><strong>MALE</strong></div>
+                    <div><strong>BRECHA</strong></div>
+
+                    <div style="text-align:left;"><strong>Recall</strong></div>
+                    <div>0.7572</div>
+                    <div>0.8874</div>
+                    <div>0.1302</div>
+
+                    <div style="text-align:left;"><strong>Especificidad</strong></div>
+                    <div>0.9453</div>
+                    <div>0.7207</div>
+                    <div>0.2246</div>
+
+                    <div style="text-align:left;"><strong>G-Mean</strong></div>
+                    <div>0.8460</div>
+                    <div>0.7997</div>
+                    <div>0.0463</div>
+
+                </div>
+
+                <div style="
+                    margin-top:14px;
+                    padding-top:12px;
+                    border-top:1px solid #d7d0c2;
+                    font-size:12px;
+                    line-height:1.45;
+                ">
+                    <strong>Hallazgo:</strong>
+                    el modelo presenta diferencias de comportamiento entre ambos subgrupos:
+                    mayor recall para Male y mayor especificidad para Female.
+                    Estas diferencias requieren seguimiento y no demuestran por sí solas discriminación.
+                </div>
+
+            </div>
+
             <div class="demo-closing">
                 La predicción que usted acaba de ver proviene de datos validados y de un modelo
-                evaluado, registrado y versionado.
+                evaluado, registrado y versionado. Su comportamiento también fue analizado
+                entre los subgrupos Female y Male.
             </div>
 
         </div>
