@@ -12,7 +12,7 @@ explique todo de nuevo.
 Antes de tocar el repo, cada persona necesita tener instalado:
 
 - **Git** (para GitHub Desktop) o **GitHub Desktop** directamente — [desktop.github.com](https://desktop.github.com)
-- **Python 3.10+** — descargado de [python.org/downloads](https://www.python.org/downloads/),
+- **Python 3.14, versión utilizada en las validaciones del equipo. Instalar las dependencias fijadas en requirements.txt.** — descargado de [python.org/downloads](https://www.python.org/downloads/),
   marcando la opción **"Add python.exe to PATH"** durante la instalación.
   (En Windows, si `python --version` abre la Microsoft Store en vez de mostrar
   un número de versión, significa que no está realmente instalado — hay que
@@ -42,8 +42,8 @@ Los tres deberían mostrar un número de versión, sin errores.
 
 ### Con terminal
 ```bash
-git clone https://github.com/<usuario>/grupo2-aci94-mlops.git
-cd grupo2-aci94-mlops
+git clone https://github.com/mariadetodosloangeles333-ai/-grupo2-aci94-mlops.git aci94-repo
+cd aci94-repo
 ```
 
 ---
@@ -77,7 +77,11 @@ El dataset **no está guardado en el repositorio** — se descarga con un script
 reproducible, tal como pide el proyecto. Nadie debería tener que pedir el
 CSV por WhatsApp: cualquiera puede generarlo así:
 
-```bash
+Comandos para PowerShell en Windows. Si `.venv` ya existe, omitir la primera línea y activar el entorno existente.
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
 python src/ingestion/ingest.py
 ```
@@ -154,6 +158,8 @@ El `.gitignore` ya bloquea esto automáticamente, pero es bueno saberlo:
 Si `git status` muestra alguno de estos como "nuevo archivo" antes de un
 commit, revisar el `.gitignore` antes de subir.
 
+Excepción: el artefacto aprobado en models/production/, incluido model.pkl, está versionado para permitir la inferencia y la construcción de Docker. Los modelos experimentales permanecen excluidos.
+
 ---
 
 ## 8. Dudas o problemas comunes
@@ -163,4 +169,4 @@ commit, revisar el `.gitignore` antes de subir.
 | `pip` no se reconoce | Python no está en el PATH | Reinstalar Python marcando "Add to PATH" |
 | `python` abre la Microsoft Store | Alias falso de Windows | Desactivar en "Alias de ejecución de aplicaciones" |
 | El CSV aparece en los cambios de Git | `.gitignore` no lo está bloqueando | Confirmar la ruta exacta del archivo dentro de `data/raw/` |
-| Conflictos al hacer push | Alguien más subió cambios antes | `git pull origin develop` antes de seguir trabajando |
+| Conflictos al hacer push | Alguien más subió cambios antes | Revisar git status, la rama actual y los cambios remotos mediante git fetch origin. No fusionar otra rama ni usar force push sin identificar primero la causa. |

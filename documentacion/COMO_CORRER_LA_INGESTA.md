@@ -29,7 +29,13 @@ Desktop o `git clone`). Abrí una terminal ahí dentro.
 
 **2. Instalá las dependencias:**
 
-```bash
+Utilizar el entorno descrito en el README, validado por el equipo con Python 3.14. Crear el entorno virtual solo si todavía no existe y activarlo antes de instalar dependencias.
+
+Comandos para PowerShell en Windows. Si `.venv` ya existe, omitir la primera línea y activar el entorno existente.
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
 ```
 
