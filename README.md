@@ -1,6 +1,6 @@
 # Grupo 2 — ACI94: Predicción de Ingreso (Adult / Census Income)
 
-> Estado: implementación de datos, modelado, API, Docker y monitoreo integrada en develop. Documentación en revisión; validación final e integración a main pendientes.
+> Estado: implementación de datos, modelado, API, Docker y monitoreo integrada en develop. Instalación, ingesta, limpieza y 37 pruebas verificadas en una copia limpia. Revisión documental final e integración a main pendientes.
 
 ## 1. Business Problem
 
@@ -61,6 +61,7 @@ Cada componente del diagrama corresponde a código real del repositorio: `src/in
 │   └── processed/       # datos procesados (no versionados)
 ├── notebooks/            # EDA y notebooks exploratorios
 ├── docs/architecture/     # diagramas de arquitectura
+├── documentacion/        # guías de uso y análisis del modelo
 ├── frontend/             # interfaz Streamlit
 ├── models/production/    # artefacto MLflow aprobado para inferencia
 ├── src/
@@ -333,6 +334,8 @@ Correr:
 python src/monitoring/retraining_decision.py
 ```
 
+**Límite de interpretación:** detectar drift y deterioro simultáneamente justifica investigar y considerar reentrenamiento, pero no demuestra que el drift haya causado la caída. Asimismo, no detectar drift en las variables monitoreadas no descarta cambios en otras variables o en la relación entre entradas y objetivo. Las explicaciones de la demo deben interpretarse con estas limitaciones.
+
 ### 11.4 System Monitoring
 
 El middleware de `src/api/main.py` contabiliza solicitudes, errores HTTP 4xx/5xx y latencia. `/metrics` se excluye de sus propios contadores.
@@ -381,7 +384,7 @@ python -m pytest -q
 
 La suite cubre esquema, tipos, rangos, missing y columnas obligatorias; carga y predicción del modelo; respuesta de API válida y HTTP 422; métricas operativas; calidad, drift, desempeño etiquetado y decisiones de reentrenamiento.
 
-Validación realizada sobre la rama `docs/final-integration`: 37 pruebas aprobadas y una advertencia de deprecación de Starlette/TestClient, sin fallos. La simulación de drift produjo los estados OK, WARNING y ALERT. La validación posterior a conciliar los cambios de `main` sigue pendiente.
+Validación realizada sobre una copia limpia de develop, commit f6dee34, con Python 3.14.6 y un entorno virtual nuevo: instalación de dependencias sin incompatibilidades declaradas, ingesta y limpieza completadas, y 37 pruebas aprobadas con dos advertencias de deprecación y ningún fallo. En las comprobaciones anteriores también se verificaron Docker, API, métricas operativas y simulaciones de calidad, drift y desempeño.
 
 ## 12. Results
 
@@ -417,6 +420,8 @@ MLflow almacenó criterios de selección y validación, matriz de confusión, cu
 
 El modelo fue registrado en MLflow Model Registry con el nombre `adult-income-classifier`; la versión `1` recibió el alias `production`, identificándola como la versión aprobada para el servicio de inferencia (ver sección 8, MLflow).
 
+El [análisis detallado del modelo](documentacion/model_evaluation.md) incluye la matriz de confusión, las métricas de los subgrupos Female y Male y las limitaciones de interpretación.
+
 ## 13. Team
 
 - Vladimir
@@ -427,4 +432,4 @@ El modelo fue registrado en MLflow Model Registry con el nombre `adult-income-cl
 
 El flujo de integración es rama de trabajo → PR hacia `develop` → revisión y pruebas → PR de `develop` hacia `main`. Se concilian los cambios pendientes sin perder contenido; no se sustituyen estos pasos fusionando features directamente en `main`.
 
-Pendientes antes de entregar: confirmar los roles del equipo, concluir la integración documental, repetir pruebas y demos sobre el código integrado, validar Docker/API y completar informe técnico, presentación y demo. Actualizar el estado del README cuando esos pasos estén terminados.
+Antes de entregar: completar la revisión documental e integrar develop a main mediante PR. Confirmar también que el informe técnico, la presentación y la demo de defensa estén preparados.
