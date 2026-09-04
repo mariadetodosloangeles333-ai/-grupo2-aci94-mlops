@@ -38,7 +38,7 @@ Este comportamiento es coherente con el tratamiento del desbalance de clases. As
 El modelo no presenta el mismo comportamiento en los dos subgrupos analizados.
 
 | Métrica | Female | Male | Brecha absoluta |
-
+|---|---:|---:|---:|
 | Recall | 0.7572 | 0.8874 | 0.1302 |
 | Especificidad | 0.9453 | 0.7207 | 0.2246 |
 | G-Mean | 0.8460 | 0.7997 | 0.0463 |
